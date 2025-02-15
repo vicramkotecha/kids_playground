@@ -16,20 +16,23 @@ class Entity:
             return
             
         self.move_counter = 0
-        dx = random.choice([-1, 0, 1])
-        dy = random.choice([-1, 0, 1])
         
-        # Try to move up to speed steps
-        for _ in range(self.speed):
+        # Try all possible directions in random order
+        directions = [(dx, dy) for dx in [-1, 0, 1] for dy in [-1, 0, 1] if dx != 0 or dy != 0]
+        random.shuffle(directions)
+        
+        for dx, dy in directions:
             new_x = self.x + dx
             new_y = self.y + dy
             
-            if (0 <= new_x < world.width and 
-                0 <= new_y < world.height and 
-                world.world_map[new_y][new_x] == world.blocks['air'] and
+            # Check if new position is valid and free
+            if (world.is_position_free(new_x, new_y, self) and 
                 not world.is_near_wall(new_x, new_y)):
                 self.x = new_x
                 self.y = new_y
+                return  # Successfully moved
+        
+        # If we get here, no valid move was found - stay in place
 
 class World:
     def __init__(self, width=40, height=20):
@@ -94,21 +97,43 @@ class World:
                     return True
         return False
 
+    def is_position_free(self, x, y, ignore_entity=None):
+        """Check if a position is free of walls and other animals"""
+        # Check bounds and walls
+        if (x < 0 or x >= self.width or 
+            y < 0 or y >= self.height or 
+            self.world_map[y][x] != self.blocks['air']):
+            return False
+            
+        # Check for other animals
+        for animal in self.animals:
+            if animal != ignore_entity and animal.x == x and animal.y == y:
+                return False
+                
+        # Check for player
+        if x == self.player_pos[0] and y == self.player_pos[1]:
+            return False
+            
+        return True
+
     def spawn_initial_animals(self):
-        self.spawn_animals(6, 'rabbit', speed=5)  # Super fast rabbits!
+        self.spawn_animals(6, 'rabbit', speed=4)  # Super fast rabbits!
         self.spawn_animals(4, 'squirrel', speed=1)  # Normal speed squirrels
 
     def spawn_animals(self, count, animal_type, speed):
-        for _ in range(count):
-            attempts = 0
-            while attempts < 100:
-                x = random.randint(0, self.width - 1)
-                y = random.randint(0, self.height - 1)
-                if (self.world_map[y][x] == self.blocks['air'] and 
-                    not self.is_near_wall(x, y)):
-                    self.animals.append(Entity(x, y, self.blocks[animal_type], speed))
-                    break
-                attempts += 1
+        spawned = 0
+        attempts = 0
+        max_attempts = 100 * count  # Increase max attempts to find valid positions
+        
+        while spawned < count and attempts < max_attempts:
+            x = random.randint(0, self.width - 1)
+            y = random.randint(0, self.height - 1)
+            
+            if self.is_position_free(x, y) and not self.is_near_wall(x, y):
+                self.animals.append(Entity(x, y, self.blocks[animal_type], speed))
+                spawned += 1
+            
+            attempts += 1
 
     def update_animals(self):
         # Move animals randomly (removed reproduction code)
