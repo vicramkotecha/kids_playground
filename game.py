@@ -213,6 +213,58 @@ class World:
         self.player_hunger = max(0, self.player_hunger - 10)
         return False
 
+    def show_game_over_animation(self):
+        # Find ground level at player's x position
+        ground_y = self.player_pos[1]
+        while ground_y < self.height and self.world_map[ground_y][self.player_pos[0]] == self.blocks['air']:
+            ground_y += 1
+        
+        # Animate falling
+        fall_y = self.player_pos[1]
+        while fall_y < ground_y - 1:  # Stop one above ground
+            os.system('cls' if os.name == 'nt' else 'clear')
+            
+            # Create display world
+            display_world = [row[:] for row in self.world_map]
+            
+            # Add animals
+            for animal in self.animals:
+                display_world[animal.y][animal.x] = animal.symbol
+            
+            # Add falling player
+            display_world[fall_y][self.player_pos[0]] = self.blocks['player']
+            
+            # Draw the world
+            print('=' * (self.width + 2))
+            for row in display_world:
+                line = ''.join(row)
+                print(f"|{line}|")
+            print('=' * (self.width + 2))
+            
+            # Draw final stats
+            print(f"\nHunger: {'█' * 0}{'-' * 10} (0%)")
+            print(f"Rabbits remaining: {sum(1 for animal in self.animals if animal.symbol == self.blocks['rabbit'])}")
+            print(f"Squirrels remaining: {sum(1 for animal in self.animals if animal.symbol == self.blocks['squirrel'])}")
+            
+            fall_y += 1
+            time.sleep(0.2)  # Slow down the falling animation
+        
+        # Final position with dramatic message
+        os.system('cls' if os.name == 'nt' else 'clear')
+        display_world = [row[:] for row in self.world_map]
+        for animal in self.animals:
+            display_world[animal.y][animal.x] = animal.symbol
+        display_world[ground_y - 1][self.player_pos[0]] = '💀'  # Change to skull when dead
+        
+        print('=' * (self.width + 2))
+        for row in display_world:
+            line = ''.join(row)
+            print(f"|{line}|")
+        print('=' * (self.width + 2))
+        
+        print("\n💀 GAME OVER! Batman has starved! 💀")
+        time.sleep(2)  # Pause to show final message
+
 def show_victory_celebration(width, height):
     confetti = [
         '🎉', '🎊', '✨', '⭐', '🌟', '🎈',
@@ -263,14 +315,13 @@ def main():
         world.update_hunger()
         world.draw()
         
-        # Check win/lose conditions
         if world.game_won:
             print("\nCongratulations! You've caught all the animals!")
             show_victory_celebration(world.width, world.height)
             break
         
         if world.player_hunger <= 0:
-            print("\nGame Over! You starved!")
+            world.show_game_over_animation()
             break
         
         try:
