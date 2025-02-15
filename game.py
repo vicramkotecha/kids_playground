@@ -202,6 +202,12 @@ class World:
             self.player_hunger = max(0, self.player_hunger - 0.5)  # Reduced hunger decay
             self.last_move_time = current_time
 
+    def check_win_condition(self):
+        # Count only prey animals (not the wolf)
+        prey_remaining = sum(1 for animal in self.animals 
+                           if animal.symbol in [self.blocks['rabbit'], self.blocks['squirrel']])
+        return prey_remaining == 0
+
     def draw(self):
         os.system('cls' if os.name == 'nt' else 'clear')
         
@@ -227,11 +233,12 @@ class World:
         hunger_bar = f"Hunger: {'█' * filled_blocks}{'-' * empty_blocks}"
         print(f"\n{hunger_bar} ({int(self.player_hunger)}%)")
         
+        # Update to only count prey animals
         rabbits = sum(1 for animal in self.animals if animal.symbol == self.blocks['rabbit'])
         squirrels = sum(1 for animal in self.animals if animal.symbol == self.blocks['squirrel'])
         print(f"Rabbits remaining: {rabbits}")
         print(f"Squirrels remaining: {squirrels}")
-        print("\nControls: Arrow keys to move, SPACE to eat nearby animals, Q to quit, H to huff and puff")
+        print("\nControls: Arrow keys to move, SPACE to eat nearby animals, H to huff and puff, Q to quit")
         
         # Add wolf warning if nearby
         for animal in self.animals:
@@ -368,8 +375,8 @@ class World:
             return "No wolf in sight!"
             
         # Calculate distance to wolf
-        dx = wolf.x - self.player_pos[0]
-        dy = wolf.y - self.player_pos[1]
+        dx = wolf.x        - self.player_pos[0]
+        dy = wolf.y  - self.player_pos[1]
         distance = max(abs(dx), abs(dy))
         
         # Blow distance decreases with distance to wolf
@@ -450,8 +457,7 @@ def main():
     except ImportError:
         print("Please install the 'keyboard' library first:")
         print("pip install keyboard")
-        return
-
+        return  
     world = World()
     
     while True:
@@ -459,8 +465,10 @@ def main():
         world.update_hunger()
         world.draw()
         
-        if world.game_won:
-            print("\nCongratulations! You've caught all the animals!")
+        # Check win condition before other checks
+        if world.check_win_condition():
+            print("\nCongratulations! You've caught all the prey animals!")
+            print("Now escape the wolf! 🐺")
             show_victory_celebration(world.width, world.height)
             break
         
