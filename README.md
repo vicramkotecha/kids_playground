@@ -13,6 +13,7 @@ You are Batman (🦇) in a world filled with fast rabbits (🐰) and slower squi
   - Rabbits: Fast (speed 2) and restore 40 hunger points
   - Squirrels: Slower (speed 1) and restore 25 hunger points
 - Smart animals that move randomly but avoid walls
+- Escape mechanics: Animals have a 50% chance to escape when caught
 - Win condition: Catch all animals (with celebratory confetti! 🎉)
 - Lose condition: Run out of hunger
 
@@ -23,12 +24,16 @@ You are Batman (🦇) in a world filled with fast rabbits (🐰) and slower squi
 
 ### Tips
 - Each movement costs hunger points
+- Failed eating attempts cost 10 hunger points
+- Animals might escape by jumping away from you
 - Rabbits move twice as fast as squirrels
 - Rabbits give more hunger points but are harder to catch
 - Squirrels are easier to catch but give less hunger
 - Plan your hunting strategy:
   - Chase rabbits when you have plenty of hunger
   - Hunt squirrels when you need a quick meal
+  - Don't miss your attempts to eat - it's costly!
+  - Try to corner animals to prevent escape
 - Watch your hunger meter!
 
 ## Code Overview

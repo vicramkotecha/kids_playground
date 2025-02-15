@@ -174,13 +174,44 @@ class World:
             dy = abs(animal.y - py)
             
             # If within one space in any direction
-            if dx <= 1.5 and dy <= 1:  # Increased x detection range slightly
+            if dx <= 1.5 and dy <= 1:
+                # 50% chance of escape
+                if random.random() < 0.5:
+                    # Calculate escape direction (opposite of player)
+                    escape_dx = animal.x - px
+                    escape_dy = animal.y - py
+                    
+                    # Normalize to get direction
+                    if escape_dx != 0:
+                        escape_dx = escape_dx // abs(escape_dx)
+                    if escape_dy != 0:
+                        escape_dy = escape_dy // abs(escape_dy)
+                    
+                    # Try to escape
+                    new_x = animal.x + escape_dx
+                    new_y = animal.y + escape_dy
+                    
+                    # Check if escape position is valid
+                    if (0 <= new_x < self.width and 
+                        0 <= new_y < self.height and 
+                        self.world_map[new_y][new_x] == self.blocks['air'] and
+                        not self.is_near_wall(new_x, new_y)):
+                        animal.x = new_x
+                        animal.y = new_y
+                
+                    # Whether escape was successful or not, it counts as a miss
+                    self.player_hunger = max(0, self.player_hunger - 10)
+                    return False
+                
+                # If didn't try to escape, get eaten
                 self.animals.remove(animal)
-                # Rabbits give more hunger points because they're harder to catch
                 hunger_boost = 40 if animal.symbol == self.blocks['rabbit'] else 25
                 self.player_hunger = min(100, self.player_hunger + hunger_boost)
                 return True
-        return False  
+        
+        # No animal in range - costs hunger
+        self.player_hunger = max(0, self.player_hunger - 10)
+        return False
 
 def show_victory_celebration(width, height):
     confetti = [
@@ -189,9 +220,9 @@ def show_victory_celebration(width, height):
         '🟢', '🟩', '💚', '🌿',
         '🌈', '🦄', '☘️', '🎨',  
         '🌺', '💫', '⚡', '🎆'   
-    ]
+    ]  
     celebration_frames = 5
-    
+      
     for _ in range(celebration_frames):
         os.system('cls' if os.name == 'nt' else 'clear')
         
