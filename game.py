@@ -156,11 +156,19 @@ class World:
         new_x = self.player_pos[0] + dx
         new_y = self.player_pos[1] + dy
         
+        # First check if we can move to the new position
         if (0 <= new_x < self.width and 
             0 <= new_y < self.height and 
             self.world_map[new_y][new_x] == self.blocks['air']):
+            
+            # Check if there's an animal in the way
+            for animal in self.animals:
+                if animal.x == new_x and animal.y == new_y:
+                    return  # Can't move into animal's space
+            
+            # If no animal blocking, move player
             self.player_pos = [new_x, new_y]
-            self.player_hunger = max(0, self.player_hunger - 1)  # Reduced movement hunger cost
+            self.player_hunger = max(0, self.player_hunger - 1)  # Movement still costs hunger
 
     def eat_nearby_animal(self):
         # Get player's position, accounting for emoji width
