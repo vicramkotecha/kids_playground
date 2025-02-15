@@ -13,7 +13,7 @@ You are Batman (🦇) in a world filled with fast rabbits (🐰) and slower squi
   - Rabbits: Fast (speed 2) and restore 40 hunger points
   - Squirrels: Slower (speed 1) and restore 25 hunger points
 - Smart animals that move randomly but avoid walls
-- Win condition: Catch all animals
+- Win condition: Catch all animals (with celebratory confetti! 🎉)
 - Lose condition: Run out of hunger
 
 ### Controls

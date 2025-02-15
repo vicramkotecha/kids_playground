@@ -163,16 +163,59 @@ class World:
             self.player_hunger = max(0, self.player_hunger - 1)  # Reduced movement hunger cost
 
     def eat_nearby_animal(self):
-        # Check adjacent squares for animals
+        # Get player's position, accounting for emoji width
+        px = self.player_pos[0]
+        py = self.player_pos[1]
+        
+        # Check all adjacent positions including diagonals
         for animal in self.animals[:]:
-            if (abs(animal.x - self.player_pos[0]) <= 1 and 
-                abs(animal.y - self.player_pos[1]) <= 1):
+            # Calculate true distance, accounting for emoji width
+            dx = abs(animal.x - px)
+            dy = abs(animal.y - py)
+            
+            # If within one space in any direction
+            if dx <= 1.5 and dy <= 1:  # Increased x detection range slightly
                 self.animals.remove(animal)
                 # Rabbits give more hunger points because they're harder to catch
                 hunger_boost = 40 if animal.symbol == self.blocks['rabbit'] else 25
                 self.player_hunger = min(100, self.player_hunger + hunger_boost)
                 return True
-        return False
+        return False  
+
+def show_victory_celebration(width, height):
+    confetti = [
+        '🎉', '🎊', '✨', '⭐', '🌟', '🎈',
+        '🔵', '🟦', '💠', '🌐',
+        '🟢', '🟩', '💚', '🌿',
+        '🌈', '🦄', '☘️', '🎨',  
+        '🌺', '💫', '⚡', '🎆'   
+    ]
+    celebration_frames = 5
+    
+    for _ in range(celebration_frames):
+        os.system('cls' if os.name == 'nt' else 'clear')
+        
+        # Create empty celebration frame
+        frame = [[' ' for _ in range(width)] for _ in range(height)]
+        
+        # Add random confetti
+        for _ in range(width * 2):
+            x = random.randint(0, width-1)
+            y = random.randint(0, height-1)
+            frame[y][x] = random.choice(confetti)
+        
+        # Draw the frame
+        print('=' * (width + 2))
+        for row in frame:
+            print(f"|{''.join(row)}|")
+        print('=' * (width + 2))
+        
+        # Victory message with rainbow borders
+        message = "🌈 🏆 CONGRATULATIONS! YOU WIN! 🏆 🌈"
+        padding = (width - len(message)) // 2
+        print('\n' + ' ' * padding + message)
+        
+        time.sleep(0.5)  # Pause between frames
 
 def main():
     try:
@@ -192,6 +235,7 @@ def main():
         # Check win/lose conditions
         if world.game_won:
             print("\nCongratulations! You've caught all the animals!")
+            show_victory_celebration(world.width, world.height)
             break
         
         if world.player_hunger <= 0:
