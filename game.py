@@ -3,24 +3,33 @@ import random
 import time
 
 class Entity:
-    def __init__(self, x, y, symbol):
+    def __init__(self, x, y, symbol, speed=1):
         self.x = x
         self.y = y
         self.symbol = symbol
+        self.speed = speed
+        self.move_counter = 0
 
     def move_random(self, world):
+        self.move_counter += 1
+        if self.move_counter < self.speed:
+            return
+            
+        self.move_counter = 0
         dx = random.choice([-1, 0, 1])
         dy = random.choice([-1, 0, 1])
-        new_x = self.x + dx
-        new_y = self.y + dy
         
-        # Check if new position is air and not inside or adjacent to walls
-        if (0 <= new_x < world.width and 
-            0 <= new_y < world.height and 
-            world.world_map[new_y][new_x] == world.blocks['air'] and
-            not world.is_near_wall(new_x, new_y)):
-            self.x = new_x
-            self.y = new_y
+        # Try to move up to speed steps
+        for _ in range(self.speed):
+            new_x = self.x + dx
+            new_y = self.y + dy
+            
+            if (0 <= new_x < world.width and 
+                0 <= new_y < world.height and 
+                world.world_map[new_y][new_x] == world.blocks['air'] and
+                not world.is_near_wall(new_x, new_y)):
+                self.x = new_x
+                self.y = new_y
 
 class World:
     def __init__(self, width=40, height=20):
@@ -32,20 +41,21 @@ class World:
             'tree': '♣',
             'stone': '▓',
             'player': '🦇',
-            'rabbit': '🐰'  # You might see a different symbol depending on your terminal
+            'rabbit': '🐰',
+            'squirrel': '🐿️'
         }
         self.world_map = self.generate_world()
         # Find the ground level at the middle of the map
         middle_x = width // 2
         for y in range(height):
             if self.world_map[y][middle_x] == self.blocks['grass']:
-                self.player_pos = [middle_x, y - 1]  # Place player one block above ground
+                self.player_pos = [middle_x, y - 1]
                 break
         self.player_hunger = 100
         self.animals = []
-        self.spawn_animals(8)  # Start with 8 rabbits
+        self.spawn_initial_animals()
         self.last_move_time = time.time()
-        self.game_won = False  # Add win condition tracking
+        self.game_won = False
 
     def generate_world(self):
         # Initialize empty world
@@ -84,15 +94,19 @@ class World:
                     return True
         return False
 
-    def spawn_animals(self, count=1):
+    def spawn_initial_animals(self):
+        self.spawn_animals(6, 'rabbit', speed=2)  # 6 fast rabbits
+        self.spawn_animals(4, 'squirrel', speed=1)  # 4 slower squirrels
+
+    def spawn_animals(self, count, animal_type, speed):
         for _ in range(count):
             attempts = 0
-            while attempts < 100:  # Prevent infinite loop
+            while attempts < 100:
                 x = random.randint(0, self.width - 1)
                 y = random.randint(0, self.height - 1)
                 if (self.world_map[y][x] == self.blocks['air'] and 
                     not self.is_near_wall(x, y)):
-                    self.animals.append(Entity(x, y, self.blocks['rabbit']))
+                    self.animals.append(Entity(x, y, self.blocks[animal_type], speed))
                     break
                 attempts += 1
 
@@ -115,28 +129,28 @@ class World:
     def draw(self):
         os.system('cls' if os.name == 'nt' else 'clear')
         
-        # Create a copy of the world
         display_world = [row[:] for row in self.world_map]
         
-        # Add animals and player
         for animal in self.animals:
             display_world[animal.y][animal.x] = animal.symbol
         display_world[self.player_pos[1]][self.player_pos[0]] = self.blocks['player']
         
-        # Draw the world
         print('=' * (self.width + 2))
         for row in display_world:
             line = ''.join(row)
             print(f"|{line}|")
         print('=' * (self.width + 2))
         
-        # Draw hunger bar and rabbit count
         filled_blocks = int(self.player_hunger // 10)
         empty_blocks = 10 - filled_blocks
         hunger_bar = f"Hunger: {'█' * filled_blocks}{'-' * empty_blocks}"
         print(f"\n{hunger_bar} ({int(self.player_hunger)}%)")
-        print(f"Rabbits remaining: {len(self.animals)}")
-        print("\nControls: Arrow keys to move, SPACE to eat nearby rabbit, Q to quit")
+        
+        rabbits = sum(1 for animal in self.animals if animal.symbol == self.blocks['rabbit'])
+        squirrels = sum(1 for animal in self.animals if animal.symbol == self.blocks['squirrel'])
+        print(f"Rabbits remaining: {rabbits}")
+        print(f"Squirrels remaining: {squirrels}")
+        print("\nControls: Arrow keys to move, SPACE to eat nearby animals, Q to quit")
 
     def move_player(self, dx, dy):
         new_x = self.player_pos[0] + dx
@@ -148,13 +162,15 @@ class World:
             self.player_pos = [new_x, new_y]
             self.player_hunger = max(0, self.player_hunger - 1)  # Reduced movement hunger cost
 
-    def eat_nearby_rabbit(self):
-        # Check adjacent squares for rabbits
+    def eat_nearby_animal(self):
+        # Check adjacent squares for animals
         for animal in self.animals[:]:
             if (abs(animal.x - self.player_pos[0]) <= 1 and 
                 abs(animal.y - self.player_pos[1]) <= 1):
                 self.animals.remove(animal)
-                self.player_hunger = min(100, self.player_hunger + 40)  # Increased food value
+                # Rabbits give more hunger points because they're harder to catch
+                hunger_boost = 40 if animal.symbol == self.blocks['rabbit'] else 25
+                self.player_hunger = min(100, self.player_hunger + hunger_boost)
                 return True
         return False
 
@@ -175,7 +191,7 @@ def main():
         
         # Check win/lose conditions
         if world.game_won:
-            print("\nCongratulations! You've caught all the rabbits!")
+            print("\nCongratulations! You've caught all the animals!")
             break
         
         if world.player_hunger <= 0:
@@ -199,7 +215,7 @@ def main():
             elif event.name == 'right':
                 world.move_player(1, 0)
             elif event.name == 'space':
-                world.eat_nearby_rabbit()
+                world.eat_nearby_animal()
         except KeyboardInterrupt:
             print("\nThanks for playing!")
             break
