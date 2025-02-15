@@ -95,8 +95,8 @@ class World:
         return False
 
     def spawn_initial_animals(self):
-        self.spawn_animals(6, 'rabbit', speed=2)  # 6 fast rabbits
-        self.spawn_animals(4, 'squirrel', speed=1)  # 4 slower squirrels
+        self.spawn_animals(6, 'rabbit', speed=5)  # Super fast rabbits!
+        self.spawn_animals(4, 'squirrel', speed=1)  # Normal speed squirrels
 
     def spawn_animals(self, count, animal_type, speed):
         for _ in range(count):
@@ -270,7 +270,7 @@ def show_victory_celebration(width, height):
         '🎉', '🎊', '✨', '⭐', '🌟', '🎈',
         '🔵', '🟦', '💠', '🌐',
         '🟢', '🟩', '💚', '🌿',
-        '🌈', '🦄', '☘️', '🎨',  
+        '🌈', '🦄', '🎨',  
         '🌺', '💫', '⚡', '🎆'   
     ]  
     celebration_frames = 5
