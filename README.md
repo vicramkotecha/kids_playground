@@ -4,39 +4,52 @@ A text-based survival game where you play as Batman hunting woodland creatures i
 
 ## Gameplay
 
-You are Batman (🦇) in a world filled with fast rabbits (🐰) and slower squirrels (🐿️). Your mission is to catch and eat all the animals before your hunger meter runs out.
+You are Batman (🦇) in a world filled with fast rabbits (🐰), slower squirrels (🐿️), and a deadly wolf (🐺). Your mission is to catch and eat all the animals before your hunger meter runs out.
 
 ### Features
 - Procedurally generated terrain with grass (▒), trees (♣), and stone (▓)
 - Dynamic hunger system that decreases over time
-- Two types of prey with different behaviors:
+- Multiple types of animals:
   - Rabbits: Very fast (speed 5) and restore 40 hunger points
   - Squirrels: Slower (speed 1) and restore 25 hunger points
-- Smart animals that move randomly but avoid walls
-- Escape mechanics: Animals have a 50% chance to escape when caught
-- Solid collision system - can't move through animals
-- Win condition: Catch all animals (with celebratory confetti! 🎉)
-- Lose condition: Run out of hunger
+  - Wolf: Deadly predator that hunts you! (speed 1)
+- Smart animal behaviors:
+  - Prey animals move randomly and avoid walls
+  - Wolf actively hunts the player
+- Danger warning system when wolf is nearby
+- Win condition: Catch all prey animals (with celebratory confetti! 🎉)
+- Lose conditions:
+  - Get caught by the wolf
+  - Run out of hunger
+- Special ability: Huff and puff to blow the wolf away!
+  - Costs 20 hunger points
+  - Only works when wolf is within 3 squares
+  - Blows wolf back 4 squares
 
 ### Controls
 - Arrow keys to move
 - SPACE to eat nearby animals
+- H to huff and puff (blow the wolf away)
 - Q or ESC to quit
 
 ### Tips
 - Each movement costs hunger points
 - Failed eating attempts cost 10 hunger points
 - Animals block movement - you can't move into their space
-- Animals might escape when you try to eat them
+- Watch out for the wolf - it will hunt you down!
+- Warning appears when wolf is nearby
 - Rabbits move five times faster than squirrels
-- Rabbits give more hunger points but are much harder to catch
-- Squirrels are easier to catch but give less hunger
 - Plan your hunting strategy:
+  - Keep away from the wolf at all costs
   - Chase rabbits when you have plenty of hunger
   - Hunt squirrels when you need a quick meal
   - Try to corner animals to prevent escape
   - Use SPACE to eat from adjacent squares
 - Watch your hunger meter!
+- Use your huff and puff ability wisely:
+  - Saves you from the wolf but costs lots of hunger
+  - Only works at close range
+  - Great for emergency escapes
 
 ## Code Overview
 

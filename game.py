@@ -25,7 +25,7 @@ class Entity:
             new_x = self.x + dx
             new_y = self.y + dy
             
-            # Check if new position is valid and free
+            # Check if new position is valid and free      
             if (world.is_position_free(new_x, new_y, self) and 
                 not world.is_near_wall(new_x, new_y)):
                 self.x = new_x
@@ -45,7 +45,8 @@ class World:
             'stone': '▓',
             'player': '🦇',
             'rabbit': '🐰',
-            'squirrel': '🐿️'
+            'squirrel': '🐿️',
+            'wolf': '🐺'
         }
         self.world_map = self.generate_world()
         # Find the ground level at the middle of the map
@@ -59,6 +60,9 @@ class World:
         self.spawn_initial_animals()
         self.last_move_time = time.time()
         self.game_won = False
+        self.game_over = False
+        self.game_over_message = ""
+        self.can_huff = True  # Add cooldown for huff ability
 
     def generate_world(self):
         # Initialize empty world
@@ -117,8 +121,9 @@ class World:
         return True
 
     def spawn_initial_animals(self):
-        self.spawn_animals(6, 'rabbit', speed=4)  # Super fast rabbits!
+        self.spawn_animals(6, 'rabbit', speed=5)  # Super fast rabbits
         self.spawn_animals(4, 'squirrel', speed=1)  # Normal speed squirrels
+        self.spawn_animals(1, 'wolf', speed=1)  # One deadly wolf
 
     def spawn_animals(self, count, animal_type, speed):
         spawned = 0
@@ -136,14 +141,60 @@ class World:
             attempts += 1
 
     def update_animals(self):
-        # Move animals randomly (removed reproduction code)
+        # Move animals randomly
         for animal in self.animals:
             if random.random() < 0.3:  # 30% chance to move
-                animal.move_random(self)
+                if animal.symbol == self.blocks['wolf']:
+                    self.move_wolf(animal)  # Wolves hunt the player
+                else:
+                    animal.move_random(self)
         
         # Check for win condition
         if len(self.animals) == 0:
             self.game_won = True
+
+    def move_wolf(self, wolf):
+        # 80% chance to chase player, 20% chance to move randomly
+        if random.random() < 0.8:
+            # Chase player with some randomness
+            dx = 0 if self.player_pos[0] == wolf.x else (1 if self.player_pos[0] > wolf.x else -1)
+            dy = 0 if self.player_pos[1] == wolf.y else (1 if self.player_pos[1] > wolf.y else -1)
+            
+            # 30% chance to only move in one direction instead of both
+            if random.random() < 0.3 and dx != 0 and dy != 0:
+                if random.random() < 0.5:
+                    dy = 0  # Only move horizontally
+                else:
+                    dx = 0  # Only move vertically
+            
+            # 10% chance to move in a random perpendicular direction
+            if random.random() < 0.1:
+                if dx != 0:
+                    dx = 0
+                    dy = random.choice([-1, 1])
+                else:
+                    dy = 0
+                    dx = random.choice([-1, 1])
+            
+            new_x = wolf.x + dx
+            new_y = wolf.y + dy
+        else:
+            # Random movement like other animals
+            dx = random.choice([-1, 0, 1])
+            dy = random.choice([-1, 0, 1])
+            new_x = wolf.x + dx
+            new_y = wolf.y + dy
+        
+        # Check if move is valid
+        if self.is_position_free(new_x, new_y, wolf) and not self.is_near_wall(new_x, new_y):
+            wolf.x = new_x
+            wolf.y = new_y
+        
+        # Check if wolf caught player
+        if (abs(wolf.x - self.player_pos[0]) <= 1 and 
+            abs(wolf.y - self.player_pos[1]) <= 1):
+            self.game_over = True
+            self.game_over_message = "💀 GAME OVER! The wolf got you! 💀"
 
     def update_hunger(self):
         current_time = time.time()
@@ -158,7 +209,12 @@ class World:
         
         for animal in self.animals:
             display_world[animal.y][animal.x] = animal.symbol
-        display_world[self.player_pos[1]][self.player_pos[0]] = self.blocks['player']
+        
+        # If game over by wolf, show skull instead of bat
+        if self.game_over and "wolf got you" in self.game_over_message.lower():
+            display_world[self.player_pos[1]][self.player_pos[0]] = '💀'
+        else:
+            display_world[self.player_pos[1]][self.player_pos[0]] = self.blocks['player']
         
         print('=' * (self.width + 2))
         for row in display_world:
@@ -175,7 +231,14 @@ class World:
         squirrels = sum(1 for animal in self.animals if animal.symbol == self.blocks['squirrel'])
         print(f"Rabbits remaining: {rabbits}")
         print(f"Squirrels remaining: {squirrels}")
-        print("\nControls: Arrow keys to move, SPACE to eat nearby animals, Q to quit")
+        print("\nControls: Arrow keys to move, SPACE to eat nearby animals, Q to quit, H to huff and puff")
+        
+        # Add wolf warning if nearby
+        for animal in self.animals:
+            if (animal.symbol == self.blocks['wolf'] and 
+                abs(animal.x - self.player_pos[0]) <= 3 and 
+                abs(animal.y - self.player_pos[1]) <= 3):
+                print("\n⚠️ WARNING: Wolf nearby! ⚠️")
 
     def move_player(self, dx, dy):
         new_x = self.player_pos[0] + dx
@@ -298,6 +361,54 @@ class World:
         print("\n💀 GAME OVER! Batman has starved! 💀")
         time.sleep(2)  # Pause to show final message
 
+    def huff_and_puff(self):
+        # Find the wolf
+        wolf = next((animal for animal in self.animals if animal.symbol == self.blocks['wolf']), None)
+        if not wolf:
+            return "No wolf in sight!"
+            
+        # Calculate distance to wolf
+        dx = wolf.x - self.player_pos[0]
+        dy = wolf.y - self.player_pos[1]
+        distance = max(abs(dx), abs(dy))
+        
+        # Blow distance decreases with distance to wolf
+        if distance <= 3:
+            blow_distance = 4  # Full power at close range
+        elif distance <= 6:
+            blow_distance = 3  # Medium power at medium range
+        elif distance <= 9:
+            blow_distance = 2  # Weak at long range
+        else:
+            blow_distance = 1  # Very weak at very long range
+        
+        # Normalize direction
+        dir_x = dx/max(abs(dx), 1) if dx != 0 else 0
+        dir_y = dy/max(abs(dy), 1) if dy != 0 else 0
+        
+        # Try to blow wolf away
+        for test_distance in range(blow_distance, 0, -1):  # Try different distances if blocked
+            new_x = wolf.x + int(dir_x * test_distance)
+            new_y = wolf.y + int(dir_y * test_distance)
+            
+            # Try positions around the target point if direct path is blocked
+            for offset_x in [0, -1, 1]:
+                for offset_y in [0, -1, 1]:
+                    test_x = new_x + offset_x
+                    test_y = new_y + offset_y
+                    
+                    if (0 <= test_x < self.width and 
+                        0 <= test_y < self.height and 
+                        self.is_position_free(test_x, test_y, wolf) and 
+                        not self.is_near_wall(test_x, test_y)):
+                        # Found a valid position!
+                        wolf.x = test_x
+                        wolf.y = test_y
+                        self.player_hunger = max(0, self.player_hunger - 20)
+                        return f"success:{blow_distance}"
+        
+        return "No clear path to blow wolf!"
+
 def show_victory_celebration(width, height):
     confetti = [
         '🎉', '🎊', '✨', '⭐', '🌟', '🎈',
@@ -353,6 +464,10 @@ def main():
             show_victory_celebration(world.width, world.height)
             break
         
+        if world.game_over:
+            print(f"\n{world.game_over_message}")
+            break
+        
         if world.player_hunger <= 0:
             world.show_game_over_animation()
             break
@@ -362,7 +477,23 @@ def main():
             if event.event_type != 'down':
                 continue
                 
-            if event.name == 'q' or event.name == 'esc':
+            if event.name == 'h':
+                result = world.huff_and_puff()
+                if result.startswith("success"):
+                    distance = result.split(":")[1]
+                    if distance == "4":
+                        print("\n💨 *WHOOSH* You blow the wolf away with full force! 💨")
+                    elif distance == "3":
+                        print("\n💨 *WHOOSH* The wolf is pushed back! 💨")
+                    elif distance == "2":
+                        print("\n💨 The wolf stumbles back a bit 💨")
+                    else:
+                        print("\n💨 The wolf barely feels the breeze 💨")
+                    time.sleep(0.5)
+                else:
+                    print(f"\n❌ Can't huff and puff: {result}")
+                    time.sleep(0.5)
+            elif event.name == 'q' or event.name == 'esc':
                 print("\nThanks for playing!")
                 break
             elif event.name == 'up':
