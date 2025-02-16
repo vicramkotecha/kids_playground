@@ -35,9 +35,10 @@ class Entity:
         # If we get here, no valid move was found - stay in place
 
 class World:
-    def __init__(self, width=40, height=20):
+    def __init__(self, width=40, height=20, level=1):
         self.width = width
         self.height = height
+        self.level = level
         self.blocks = {
             'air': ' ',
             'grass': '▒',
@@ -121,9 +122,11 @@ class World:
         return True
 
     def spawn_initial_animals(self):
-        self.spawn_animals(6, 'rabbit', speed=5)  # Super fast rabbits
-        self.spawn_animals(4, 'squirrel', speed=1)  # Normal speed squirrels
-        self.spawn_animals(1, 'wolf', speed=1)  # One deadly wolf
+        self.animals = []
+        self.spawn_animals(6, 'rabbit', speed=5)
+        self.spawn_animals(4, 'squirrel', speed=1)
+        # Spawn wolves based on level
+        self.spawn_animals(self.level, 'wolf', speed=1)
 
     def spawn_animals(self, count, animal_type, speed):
         spawned = 0
@@ -231,13 +234,15 @@ class World:
         filled_blocks = int(self.player_hunger // 10)
         empty_blocks = 10 - filled_blocks
         hunger_bar = f"Hunger: {'█' * filled_blocks}{'-' * empty_blocks}"
-        print(f"\n{hunger_bar} ({int(self.player_hunger)}%)")
+        print(f"\nLevel {self.level}")
+        print(f"Hunger: {'█' * filled_blocks}{'-' * empty_blocks} ({int(self.player_hunger)}%)")
         
-        # Update to only count prey animals
         rabbits = sum(1 for animal in self.animals if animal.symbol == self.blocks['rabbit'])
         squirrels = sum(1 for animal in self.animals if animal.symbol == self.blocks['squirrel'])
+        wolves = sum(1 for animal in self.animals if animal.symbol == self.blocks['wolf'])
         print(f"Rabbits remaining: {rabbits}")
         print(f"Squirrels remaining: {squirrels}")
+        print(f"Wolves hunting you: {wolves}")
         print("\nControls: Arrow keys to move, SPACE to eat nearby animals, H to huff and puff, Q to quit")
         
         # Add wolf warning if nearby
@@ -369,52 +374,70 @@ class World:
         time.sleep(2)  # Pause to show final message
 
     def huff_and_puff(self):
-        # Find the wolf
-        wolf = next((animal for animal in self.animals if animal.symbol == self.blocks['wolf']), None)
-        if not wolf:
-            return "No wolf in sight!"
+        # Find all wolves
+        wolves = [animal for animal in self.animals if animal.symbol == self.blocks['wolf']]
+        if not wolves:
+            return "No wolves in sight!"
             
-        # Calculate distance to wolf
-        dx = wolf.x        - self.player_pos[0]
-        dy = wolf.y  - self.player_pos[1]
-        distance = max(abs(dx), abs(dy))
+        wolves_blown = 0
+        total_distance = 0
         
-        # Blow distance decreases with distance to wolf
-        if distance <= 3:
-            blow_distance = 4  # Full power at close range
-        elif distance <= 6:
-            blow_distance = 3  # Medium power at medium range
-        elif distance <= 9:
-            blow_distance = 2  # Weak at long range
-        else:
-            blow_distance = 1  # Very weak at very long range
-        
-        # Normalize direction
-        dir_x = dx/max(abs(dx), 1) if dx != 0 else 0
-        dir_y = dy/max(abs(dy), 1) if dy != 0 else 0
-        
-        # Try to blow wolf away
-        for test_distance in range(blow_distance, 0, -1):  # Try different distances if blocked
-            new_x = wolf.x + int(dir_x * test_distance)
-            new_y = wolf.y + int(dir_y * test_distance)
+        # Try to blow each wolf
+        for wolf in wolves:
+            # Calculate distance to wolf
+            dx = wolf.x - self.player_pos[0]
+            dy = wolf.y - self.player_pos[1]
+            distance = max(abs(dx), abs(dy))
             
-            # Try positions around the target point if direct path is blocked
-            for offset_x in [0, -1, 1]:
-                for offset_y in [0, -1, 1]:
-                    test_x = new_x + offset_x
-                    test_y = new_y + offset_y
-                    
-                    if (0 <= test_x < self.width and 
-                        0 <= test_y < self.height and 
-                        self.is_position_free(test_x, test_y, wolf) and 
-                        not self.is_near_wall(test_x, test_y)):
-                        # Found a valid position!
-                        wolf.x = test_x
-                        wolf.y = test_y
-                        self.player_hunger = max(0, self.player_hunger - 20)
-                        return f"success:{blow_distance}"
+            # Blow distance decreases with distance to wolf
+            if distance <= 3:
+                blow_distance = 4  # Full power at close range
+            elif distance <= 6:
+                blow_distance = 3  # Medium power at medium range
+            elif distance <= 9:
+                blow_distance = 2  # Weak at long range
+            else:
+                blow_distance = 1  # Very weak at very long range
+            
+            # Normalize direction
+            dir_x = dx/max(abs(dx), 1) if dx != 0 else 0
+            dir_y = dy/max(abs(dy), 1) if dy != 0 else 0
+            
+            # Try to blow wolf away
+            for test_distance in range(blow_distance, 0, -1):
+                new_x = wolf.x + int(dir_x * test_distance)
+                new_y = wolf.y + int(dir_y * test_distance)
+                
+                # Try positions around the target point
+                for offset_x in [0, -1, 1]:
+                    for offset_y in [0, -1, 1]:
+                        test_x = new_x + offset_x
+                        test_y = new_y + offset_y
+                        
+                        if (0 <= test_x < self.width and 
+                            0 <= test_y < self.height and 
+                            self.is_position_free(test_x, test_y, wolf) and 
+                            not self.is_near_wall(test_x, test_y)):
+                            # Found a valid position!
+                            wolf.x = test_x
+                            wolf.y = test_y
+                            wolves_blown += 1
+                            total_distance = max(total_distance, blow_distance)
+                            break
+                    if wolves_blown > len(wolves) - 1:  # If we've moved all wolves
+                        break
+                if wolves_blown > len(wolves) - 1:
+                    break
+            if wolves_blown > len(wolves) - 1:
+                break
         
-        return "No clear path to blow wolf!"
+        if wolves_blown == 0:
+            return "No clear path to blow wolves!"
+            
+        # Cost hunger only once, even if blowing multiple wolves
+        self.player_hunger = max(0, self.player_hunger - 20)
+        
+        return f"success:{total_distance}:{wolves_blown}"
 
 def show_victory_celebration(width, height):
     confetti = [
@@ -451,72 +474,98 @@ def show_victory_celebration(width, height):
         
         time.sleep(0.5)  # Pause between frames
 
+def show_level_transition():
+    messages = [
+        "🌙 Night falls... More wolves emerge... 🌙",
+        "🐺 The pack is growing... 🐺",
+        "Level 2: Double Trouble!",
+        "Can you survive against TWO wolves?",
+        "Get ready..."
+    ]
+    
+    for msg in messages:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("\n" * 10)
+        print(" " * 20 + msg)
+        time.sleep(1)
+
 def main():
     try:
         import keyboard
     except ImportError:
         print("Please install the 'keyboard' library first:")
         print("pip install keyboard")
-        return  
-    world = World()
-    
-    while True:
-        world.update_animals()
-        world.update_hunger()
-        world.draw()
+        return
+
+    level = 1
+    while level <= 2:  # Support for two levels
+        world = World(level=level)
         
-        # Check win condition before other checks
-        if world.check_win_condition():
-            print("\nCongratulations! You've caught all the prey animals!")
-            print("Now escape the wolf! 🐺")
-            show_victory_celebration(world.width, world.height)
-            break
-        
-        if world.game_over:
-            print(f"\n{world.game_over_message}")
-            break
-        
-        if world.player_hunger <= 0:
-            world.show_game_over_animation()
-            break
-        
-        try:
-            event = keyboard.read_event(suppress=True)
-            if event.event_type != 'down':
-                continue
-                
-            if event.name == 'h':
-                result = world.huff_and_puff()
-                if result.startswith("success"):
-                    distance = result.split(":")[1]
-                    if distance == "4":
-                        print("\n💨 *WHOOSH* You blow the wolf away with full force! 💨")
-                    elif distance == "3":
-                        print("\n💨 *WHOOSH* The wolf is pushed back! 💨")
-                    elif distance == "2":
-                        print("\n💨 The wolf stumbles back a bit 💨")
-                    else:
-                        print("\n💨 The wolf barely feels the breeze 💨")
-                    time.sleep(0.5)
+        while True:
+            world.update_animals()
+            world.update_hunger()
+            world.draw()
+            
+            if world.check_win_condition():
+                if level == 1:
+                    print("\nLevel 1 Complete! You've caught all the prey animals!")
+                    show_victory_celebration(world.width, world.height)
+                    show_level_transition()
+                    level += 1
+                    break  # Break inner loop to start level 2
                 else:
-                    print(f"\n❌ Can't huff and puff: {result}")
-                    time.sleep(0.5)
-            elif event.name == 'q' or event.name == 'esc':
+                    print("\nCongratulations! You've beaten both levels!")
+                    print("You are the ultimate Batman! 🦇")
+                    show_victory_celebration(world.width, world.height)
+                    return  # End game after beating level 2
+            
+            if world.game_over:
+                print(f"\n{world.game_over_message}")
+                return  # End game if caught by wolves
+                
+            if world.player_hunger <= 0:
+                world.show_game_over_animation()
+                return  # End game if starved
+            
+            try:
+                event = keyboard.read_event(suppress=True)
+                if event.event_type != 'down':
+                    continue
+                    
+                if event.name == 'h':
+                    result = world.huff_and_puff()
+                    if result.startswith("success"):
+                        parts = result.split(":")
+                        distance = parts[1]
+                        wolves_count = parts[2]
+                        if distance == "4":
+                            print(f"\n💨 *WHOOSH* You blow {wolves_count} wolves away with full force! 💨")
+                        elif distance == "3":
+                            print(f"\n💨 *WHOOSH* {wolves_count} wolves are pushed back! 💨")
+                        elif distance == "2":
+                            print(f"\n💨 {wolves_count} wolves stumble back a bit 💨")
+                        else:
+                            print(f"\n💨 {wolves_count} wolves barely feel the breeze 💨")
+                        time.sleep(0.5)
+                    else:
+                        print(f"\n❌ Can't huff and puff: {result}")
+                        time.sleep(0.5)
+                elif event.name == 'q' or event.name == 'esc':
+                    print("\nThanks for playing!")
+                    return
+                elif event.name == 'up':
+                    world.move_player(0, -1)
+                elif event.name == 'down':
+                    world.move_player(0, 1)
+                elif event.name == 'left':
+                    world.move_player(-1, 0)
+                elif event.name == 'right':
+                    world.move_player(1, 0)
+                elif event.name == 'space':
+                    world.eat_nearby_animal()
+            except KeyboardInterrupt:
                 print("\nThanks for playing!")
-                break
-            elif event.name == 'up':
-                world.move_player(0, -1)
-            elif event.name == 'down':
-                world.move_player(0, 1)
-            elif event.name == 'left':
-                world.move_player(-1, 0)
-            elif event.name == 'right':
-                world.move_player(1, 0)
-            elif event.name == 'space':
-                world.eat_nearby_animal()
-        except KeyboardInterrupt:
-            print("\nThanks for playing!")
-            break
+                return
 
 if __name__ == "__main__":
     main()
