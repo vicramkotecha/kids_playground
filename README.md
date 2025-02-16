@@ -1,10 +1,22 @@
-# R's First Game!
+# Superhero Survival Game!
 
-A text-based survival game where you play as Batman hunting woodland creatures in a procedurally generated world. Chase down all the animals before you starve!
+A text-based survival game where you play as your favorite superhero hunting woodland creatures in a procedurally generated world. Chase down all the animals before you starve!
+
+## Playable Characters
+- 🦇 Batman - The Dark Knight
+- 🐦 Robin - The Boy Wonder
+- 🕷️ Spider-Man - Your friendly neighborhood spider
+- 🐆 Black Panther - Wakanda Forever!
+- 🤖 Iron Man - Genius, billionaire, playboy, philanthropist
+- 🛡️ Captain America - The First Avenger
+- ⚔️ Wonder Woman - Amazon warrior princess
+- 💪 Superman - The Man of Steel
+- 💚 Hulk - The strongest there is!
+- 👸 Princess Peach - Ruler of the Mushroom Kingdom
 
 ## Gameplay
 
-You are Batman (🦇) in a world filled with fast rabbits (🐰), slower squirrels (🐿️), and a deadly wolf (🐺). Your mission is to catch and eat all the animals before your hunger meter runs out.
+Choose your favorite hero and survive in a world filled with fast rabbits (🐰) and slower squirrels (🐿️). Your mission is to catch and eat all the animals before your hunger meter runs out, while avoiding the deadly wolves (🐺)!
 
 ### Features
 - Procedurally generated terrain with grass (▒), trees (♣), and stone (▓)

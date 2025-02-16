@@ -34,17 +34,49 @@ class Entity:
         
         # If we get here, no valid move was found - stay in place
 
+def select_character():
+    characters = [
+        ('Batman', '🦇', "The Dark Knight - Master of stealth"),
+        ('Robin', '🐦', "The Wonder"),
+        ('Spider-Man', '🕷️', "Your friendly neighborhood spider"),
+        ('Black Panther', '🐆', "Wakanda Forever!"),
+        ('Iron Man', '🤖', "Genius, billionaire, philanthropist"),
+        ('Captain America', '🛡️', "The First Avenger"),
+        ('Wonder Woman', '⚔️', "Amazon warrior princess"),
+        ('Superman', '💪', "The Man of Steel"),
+        ('Hulk', '💚', "The strongest there is!"),
+        ('Princess Peach', '👸', "Ruler of the Mushroom Kingdom")
+    ]
+    
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print("\n=== Choose Your Hero! ===\n")
+    
+    for i, (name, emoji, desc) in enumerate(characters, 1):
+        print(f"{i}. {emoji} {name} - {desc}")
+    
+    while True:
+        try:
+            choice = input(f"\nEnter the number of your hero (1-{len(characters)}): ")
+            idx = int(choice) - 1
+            if 0 <= idx < len(characters):
+                return characters[idx][0], characters[idx][1]
+            else:
+                print(f"Please enter a number between 1 and {len(characters)}")
+        except ValueError:
+            print("Please enter a valid number")
+
 class World:
     def __init__(self, width=40, height=20, level=1):
         self.width = width
         self.height = height
         self.level = level
+        self.hero_name, self.hero_symbol = select_character()
         self.blocks = {
             'air': ' ',
             'grass': '▒',
             'tree': '♣',
             'stone': '▓',
-            'player': '🦇',
+            'player': self.hero_symbol,  # Use selected character
             'rabbit': '🐰',
             'squirrel': '🐿️',
             'wolf': '🐺'
@@ -234,7 +266,7 @@ class World:
         filled_blocks = int(self.player_hunger // 10)
         empty_blocks = 10 - filled_blocks
         hunger_bar = f"Hunger: {'█' * filled_blocks}{'-' * empty_blocks}"
-        print(f"\nLevel {self.level}")
+        print(f"\nLevel {self.level} - {self.hero_name}")
         print(f"Hunger: {'█' * filled_blocks}{'-' * empty_blocks} ({int(self.player_hunger)}%)")
         
         rabbits = sum(1 for animal in self.animals if animal.symbol == self.blocks['rabbit'])
@@ -370,7 +402,7 @@ class World:
             print(f"|{line}|")
         print('=' * (self.width + 2))
         
-        print("\n💀 GAME OVER! Batman has starved! 💀")
+        print(f"\n💀 GAME OVER! {self.hero_name} has starved! 💀")
         time.sleep(2)  # Pause to show final message
 
     def huff_and_puff(self):
@@ -483,7 +515,7 @@ def show_level_transition():
         "🌙 Night falls... More wolves emerge... 🌙",
         "🐺 The pack is growing... 🐺",
         "Level 2: Double Trouble!",
-        "Can you survive against TWO wolves?",
+        "Can our hero survive against TWO wolves?",
         "Get ready..."
     ]
     
@@ -512,14 +544,14 @@ def main():
             
             if world.check_win_condition():
                 if level == 1:
-                    print("\nLevel 1 Complete! You've caught all the prey animals!")
+                    print(f"\nLevel 1 Complete! {world.hero_name} has caught all the prey animals!")
                     show_victory_celebration(world.width, world.height)
                     show_level_transition()
                     level += 1
                     break  # Break inner loop to start level 2
                 else:
-                    print("\nCongratulations! You've beaten both levels!")
-                    print("You are the ultimate Batman! 🦇")
+                    print(f"\nCongratulations! {world.hero_name} has beaten both levels!")
+                    print(f"You are the ultimate {world.hero_name}! {world.hero_symbol}")
                     show_victory_celebration(world.width, world.height)
                     return  # End game after beating level 2
             
