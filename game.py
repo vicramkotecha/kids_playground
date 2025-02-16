@@ -404,12 +404,18 @@ class World:
             dir_y = dy/max(abs(dy), 1) if dy != 0 else 0
             
             # Try to blow wolf away
+            success = False
             for test_distance in range(blow_distance, 0, -1):
+                if success:
+                    break
+                    
                 new_x = wolf.x + int(dir_x * test_distance)
                 new_y = wolf.y + int(dir_y * test_distance)
                 
                 # Try positions around the target point
                 for offset_x in [0, -1, 1]:
+                    if success:
+                        break
                     for offset_y in [0, -1, 1]:
                         test_x = new_x + offset_x
                         test_y = new_y + offset_y
@@ -423,19 +429,17 @@ class World:
                             wolf.y = test_y
                             wolves_blown += 1
                             total_distance = max(total_distance, blow_distance)
+                            success = True
                             break
-                    if wolves_blown > len(wolves) - 1:  # If we've moved all wolves
-                        break
-                if wolves_blown > len(wolves) - 1:
-                    break
-            if wolves_blown > len(wolves) - 1:
-                break
         
         if wolves_blown == 0:
             return "No clear path to blow wolves!"
             
         # Cost hunger only once, even if blowing multiple wolves
         self.player_hunger = max(0, self.player_hunger - 20)
+        
+        # Add debug information
+        print(f"DEBUG: Blown {wolves_blown} out of {len(wolves)} wolves")
         
         return f"success:{total_distance}:{wolves_blown}"
 
